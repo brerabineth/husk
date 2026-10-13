@@ -1,0 +1,83 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: static x86_64
+        run: make static
+      - name: package x86_64
+        run: |
+          mkdir -p stage
+          cp husk stage/husk-linux-x86_64
+          tar -czf husk-fixtures-v0.1.0.tar.gz fixtures
+      - name: cross aarch64
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+          make clean
+          make CC=aarch64-linux-gnu-gcc CFLAGS="-O2 -static"
+          cp husk stage/husk-linux-aarch64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-dist
+          path: stage/*
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: universal build
+        run: |
+          make clean
+          make CFLAGS="-O2 -arch x86_64 -arch arm64"
+          mkdir -p stage
+          cp husk stage/husk-macos-universal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dist
+          path: stage/*
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /O2 /W4 /std:c11 /D_CRT_SECURE_NO_WARNINGS src\*.c /Fe:husk.exe
+          mkdir stage
+          copy husk.exe stage\husk-windows-x64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-dist
+          path: stage/*
+
+  publish:
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: collect
+        run: |
+          mkdir -p release
+          cp dist/linux-dist/* dist/macos-dist/* dist/windows-dist/* release/
+          ls -la release/
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/husk-linux-x86_64
+            release/husk-linux-aarch64
+            release/husk-macos-universal
+            release/husk-windows-x64.exe
+            release/husk-fixtures-v0.1.0.tar.gz

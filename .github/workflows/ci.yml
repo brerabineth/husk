@@ -1,0 +1,63 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: make
+      - name: unit tests
+        run: make test
+      - name: e2e
+        run: make e2e
+      - name: asan + ubsan over tests, e2e and fuzz
+        run: |
+          make clean
+          make CFLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" test
+          make CFLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" e2e
+      - name: static link check
+        run: |
+          make clean
+          make static
+          file husk | grep -q 'statically linked'
+      - name: hygiene — no host paths in any output
+        run: |
+          if ./husk --json fixtures/bin/ | grep -q '/home/'; then exit 1; fi
+          if ./husk --plain --no-banner fixtures/bin/ | grep -q '/home/'; then exit 1; fi
+          echo "outputs are path-clean"
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build (clang)
+        run: make
+      - name: unit tests
+        run: make test
+      - name: e2e
+        run: make e2e
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build (msvc)
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /O2 /W4 /std:c11 /D_CRT_SECURE_NO_WARNINGS src\*.c /Fe:husk.exe
+      - name: unit tests
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /O2 /W4 /std:c11 /D_CRT_SECURE_NO_WARNINGS tests\test_main.c src\elf.c src\entropy.c src\rules.c src\report.c src\util.c /Fe:test_main.exe
+          test_main.exe
+      - name: scan fixtures (elf files are data — any host can triage them)
+        shell: cmd
+        run: |
+          husk.exe --plain --no-banner fixtures\bin
+          if errorlevel 4 exit /b 1
+          husk.exe --json fixtures\bin\imposter.elf | findstr /c:"\"verdict\":\"critical\""
