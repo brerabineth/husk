@@ -51,10 +51,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: setup msvc
+        uses: ilammy/msvc-dev-cmd@v1
       - name: build
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cl /nologo /O2 /W4 /std:c11 /D_CRT_SECURE_NO_WARNINGS src\*.c /Fe:husk.exe
           mkdir stage
           copy husk.exe stage\husk-windows-x64.exe
