@@ -145,12 +145,19 @@ open(f"{sys.argv[1]}/mips32be.elf", "wb").write(bytes(e))
 EOF
 check "elf32 be verdict" "suspicious" "$($HUSK --plain --no-banner "$TMP/mips32be.elf" 2>/dev/null | sed -n 2p | awk '{print $1}')"
 
-# 13. self-scan: the scanner carries its own rule strings, so it will
-# flag itself. what matters is that it scans sanely and never crashes.
-selfv=$($HUSK --plain --no-banner $HUSK 2>/dev/null | sed -n 2p | awk '{print $1}')
-case "$selfv" in
-    clean|suspicious|malicious|critical) ok "self-scan sane ($selfv — it finds its own rule strings)" ;;
-    *) bad "self-scan ($selfv)" ;;
+# 13. self-scan (linux elf builds only: on macos the host binary is mach-o,
+# and husk correctly refuses it as not-elf)
+case "$(uname -s)" in
+    Linux)
+        selfv=$($HUSK --plain --no-banner $HUSK 2>/dev/null | sed -n 2p | awk '{print $1}')
+        case "$selfv" in
+            clean|suspicious|malicious|critical) ok "self-scan sane ($selfv — it finds its own rule strings)" ;;
+            *) bad "self-scan ($selfv)" ;;
+        esac
+        ;;
+    *)
+        ok "self-scan n/a (host binary is not elf, husk must refuse it)"
+        ;;
 esac
 
 echo
