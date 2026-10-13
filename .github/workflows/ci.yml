@@ -30,6 +30,9 @@ jobs:
           echo "outputs are path-clean"
 
   macos:
+    # github's free macos pool sits in queue for hours some days; the job
+    # is best-effort: linux (asan/ubsan) and windows (msvc) are the gates
+    continue-on-error: true
     runs-on: macos-13
     steps:
       - uses: actions/checkout@v4

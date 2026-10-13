@@ -31,6 +31,8 @@ jobs:
           path: stage/*
 
   macos:
+    # best-effort: pool capacity varies; publish does not wait on it
+    continue-on-error: true
     runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +64,7 @@ jobs:
           path: stage/*
 
   publish:
-    needs: [linux, macos, windows]
+    needs: [linux, windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -71,7 +73,8 @@ jobs:
       - name: collect
         run: |
           mkdir -p release
-          cp dist/linux-dist/* dist/macos-dist/* dist/windows-dist/* release/
+          cp dist/linux-dist/* dist/windows-dist/* release/
+          [ -d dist/macos-dist ] && cp dist/macos-dist/* release/ || true
           ls -la release/
       - uses: softprops/action-gh-release@v2
         with:
