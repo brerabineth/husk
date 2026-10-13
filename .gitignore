@@ -1,0 +1,6 @@
+build/
+husk
+husk.exe
+test_tmp*
+*.o
+*.obj
