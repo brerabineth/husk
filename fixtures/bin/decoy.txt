@@ -1,0 +1,2 @@
+not an elf. cargo manifest, plain text.
+crate: sealed
