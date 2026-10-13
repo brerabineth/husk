@@ -29,19 +29,10 @@ jobs:
           if ./husk --plain --no-banner fixtures/bin/ | grep -q '/home/'; then exit 1; fi
           echo "outputs are path-clean"
 
-  macos:
-    # github's free macos pool sits in queue for hours some days; the job
-    # is best-effort: linux (asan/ubsan) and windows (msvc) are the gates
-    continue-on-error: true
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-      - name: build (clang)
-        run: make
-      - name: unit tests
-        run: make test
-      - name: e2e
-        run: make e2e
+  # macos job: parked. the free macos runner pool sat in queue for hours
+  # across every attempt (zero steps, then cancelled). the gates are the
+  # linux matrix (asan + ubsan over the fuzz suite) and msvc on windows;
+  # a clang pass rides the release workflow when the pool allows it.
 
   windows:
     runs-on: windows-latest
