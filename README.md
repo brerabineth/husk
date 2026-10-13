@@ -82,6 +82,14 @@ gate: `husk --quiet untrusted/ || alert`.
 - hardening side-notes: pie / nx / relro+bind-now / canary — checksec's
   job, shown as context, not the verdict
 
+## what it looks like
+
+![imposter.elf — critical](assets/terminal_scan.png)
+
+![the fixture shelf](assets/terminal_batch.png)
+
+![json for tooling](assets/terminal_json.png)
+
 ## what it refuses to do
 
 - no execution. not even of the file it distrusts most.
